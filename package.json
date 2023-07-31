@@ -1,12 +1,12 @@
 {
   "name": "mini-react",
   "version": "1.0.0",
-  "description": "",
+  "description": "A mini react implementation",
   "main": "index.js",
   "scripts": {
     "build": "rollup -cw"
   },
-  "author": "",
+  "author": "yq",
   "license": "ISC",
   "dependencies": {
     "react": "16.8",
