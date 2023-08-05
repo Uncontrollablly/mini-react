@@ -38,6 +38,22 @@ function createDom(fiber) {
 }
 
 let nextUnitOfWork = null;
+let wipRoot = null;
+
+function commitWork(fiber) {
+  if (!fiber) return;
+
+  const parentDom = fiber.parent.dom;
+  parentDom.appendChild(fiber.dom);
+
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
+}
+
+function commitRoot() {
+  commitWork(wipRoot.child);
+  wipRoot = null;
+}
 
 function workLoop(deadline) {
   let shouldYield = false;
@@ -45,6 +61,11 @@ function workLoop(deadline) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
+
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
+  }
+
   requestIdleCallback(workLoop);
 }
 
@@ -54,9 +75,6 @@ function performUnitOfWork(fiber) {
   // add dom node
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
-  }
-  if (fiber.parent) {
-    fiber.parent.dom.appendChild(fiber.dom);
   }
 
   // create new fibers
@@ -92,7 +110,7 @@ function performUnitOfWork(fiber) {
 }
 
 function render(element, container) {
-  nextUnitOfWork = {
+  wipRoot = {
     type: "ROOT_ELEMENT",
     props: {
       children: [element],
@@ -100,6 +118,8 @@ function render(element, container) {
     dom: container,
     parent: null,
   };
+
+  nextUnitOfWork = wipRoot;
 }
 
 export const Didact = {
