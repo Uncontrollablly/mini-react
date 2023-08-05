@@ -22,21 +22,19 @@ function createTextElement(text) {
   };
 }
 
-function render(element, container) {
+function createDom(fiber) {
   const dom =
-    element.type == "TEXT_ELEMENT"
+    fiber.type == "TEXT_ELEMENT"
       ? document.createTextNode("")
-      : document.createElement(element.type);
+      : document.createElement(fiber.type);
 
-  Object.keys(element.props)
+  Object.keys(fiber.props)
     .filter(isProperty)
     .forEach((prop) => {
-      dom[prop] = element.props[prop];
+      dom[prop] = fiber.props[prop];
     });
 
-  element.props.children.forEach((child) => render(child, dom));
-
-  container.appendChild(dom);
+  return dom;
 }
 
 let nextUnitOfWork = null;
@@ -52,8 +50,56 @@ function workLoop(deadline) {
 
 requestIdleCallback(workLoop);
 
-function performUnitOfWork(nextUnitOfWork) {
-  // TODO
+function performUnitOfWork(fiber) {
+  // add dom node
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+  if (fiber.parent) {
+    fiber.parent.dom.appendChild(fiber.dom);
+  }
+
+  // create new fibers
+  let prevElement = null;
+  fiber.props.children.forEach((element, index) => {
+    const newFiber = {
+      type: element.type,
+      props: element.props,
+      dom: null,
+      parent: fiber,
+    };
+
+    if (index === 0) {
+      fiber.child = newFiber;
+    } else {
+      prevElement.sibling = newFiber;
+    }
+
+    prevElement = newFiber;
+  });
+
+  // return next unit of work
+  if (fiber.child) {
+    return fiber.child;
+  }
+  let nextFiber = fiber;
+  while (nextFiber) {
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+    nextFiber = nextFiber.parent;
+  }
+}
+
+function render(element, container) {
+  nextUnitOfWork = {
+    type: "ROOT_ELEMENT",
+    props: {
+      children: [element],
+    },
+    dom: container,
+    parent: null,
+  };
 }
 
 export const Didact = {
