@@ -3,13 +3,20 @@ import ReactDOM from "react-dom";
 import { Didact } from "./didact";
 
 /** @jsx Didact.createElement */
-const element = (
-  <div style="background: salmon">
-    <h1>Hello World</h1>
-    <h2 style="text-align:right">from Didact</h2>
-  </div>
-);
-
 const container = document.getElementById("root");
 
-Didact.render(element, container);
+const updateValue = (e) => {
+  rerender(e.target.value);
+};
+
+const rerender = (value) => {
+  const element = (
+    <div>
+      <input onInput={updateValue} value={value} />
+      <h2>Hello {value}</h2>
+    </div>
+  );
+  Didact.render(element, container);
+};
+
+rerender("World");
