@@ -120,7 +120,10 @@ function updateFunctionComponent(fiber) {
   wipFiber = fiber;
   hookIndex = 0;
   wipFiber.hooks = [];
-  const children = [fiber.type(fiber.props)];
+  const children =
+    fiber.props !== fiber.alternate?.props || fiber.alternate.hooks.length
+      ? [fiber.type(fiber.props)]
+      : fiber.alternate.children;
   reconcileChildren(fiber, children);
 }
 
@@ -155,13 +158,12 @@ function performUnitOfWork(fiber) {
 function reconcileChildren(wipFiber, elements) {
   let index = 0;
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
+  wipFiber.children = [];
   let prevElement = null;
   while (index < elements.length || oldFiber != null) {
     const element = elements[index];
-    let newFiber = null;
-
     const sameType = oldFiber && element && element.type == oldFiber.type;
-
+    let newFiber = null;
     if (sameType) {
       newFiber = {
         type: oldFiber.type,
@@ -170,6 +172,7 @@ function reconcileChildren(wipFiber, elements) {
         parent: wipFiber,
         alternate: oldFiber,
         effectTag: "UPDATE",
+        children: oldFiber.children,
       };
     }
     if (element && !sameType) {
@@ -180,15 +183,12 @@ function reconcileChildren(wipFiber, elements) {
         parent: wipFiber,
         alternate: null,
         effectTag: "PLACEMENT",
+        children: [],
       };
     }
     if (oldFiber && !sameType) {
       oldFiber.effectTag = "DELETION";
       deletions.push(oldFiber);
-    }
-
-    if (oldFiber) {
-      oldFiber = oldFiber.sibling;
     }
 
     if (index === 0) {
@@ -198,6 +198,12 @@ function reconcileChildren(wipFiber, elements) {
     }
 
     prevElement = newFiber;
+
+    wipFiber.children.push(newFiber);
+
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling;
+    }
     index++;
   }
 }
@@ -250,6 +256,7 @@ function useState(initial) {
       dom: currentRoot.dom,
       props: currentRoot.props,
       alternate: currentRoot,
+      children: currentRoot.children,
     };
     nextUnitOfWork = wipRoot;
     deletions = [];
